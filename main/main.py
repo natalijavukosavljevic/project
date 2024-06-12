@@ -566,6 +566,14 @@ async def invite_user_to_project(
                 status_code=401, detail="Invited user doesn't exist",
             )
 
+          # Check if the user is already participating in the project
+        if await is_participant(invited_user_obj.scalar().user_id,
+                                project_id, session):
+            raise HTTPException(
+                status_code=400,
+                detail="User is already participating in the project",
+            )
+
         await session.execute(
             insert(participant_project).values(
                 project_id=project_id,
