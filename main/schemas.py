@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class ProjectBase(BaseModel):
@@ -12,6 +12,40 @@ class ProjectBase(BaseModel):
 
     name: str
     description: str
+
+    class Config:
+        """Configuration for Pydantic model to support ORM mode.
+
+        Attributes
+        ----------
+        orm_mode : bool
+            If set to True, enables Pydantic to work with ORM models
+            (e.g., SQLAlchemy models), allowing automatic conversion
+            from ORM instances to Pydantic models.
+
+        """
+
+        orm_mode = True
+
+
+class ProjectBaseUpdate(BaseModel):
+    """Schema for updating a project."""
+
+    name: Optional[str] = None  # noqa: UP007
+    description: Optional[str] = None # noqa: UP007
+    class Config:
+        """Configuration for Pydantic model to support ORM mode.
+
+        Attributes
+        ----------
+        orm_mode : bool
+            If set to True, enables Pydantic to work with ORM models
+            (e.g., SQLAlchemy models), allowing automatic conversion
+            from ORM instances to Pydantic models.
+
+        """
+
+        orm_mode = True
 
 
 class ProjectOut(BaseModel):
@@ -42,12 +76,25 @@ class ProjectOutWithDocuments(BaseModel):
     logo_id: Optional[int]  # Assuming logo_id is optional  # noqa: UP007
     documents: list[DocumentOut] = []  # List of associated documents
 
+    class Config:
+        """Configuration for Pydantic model to support ORM mode.
+
+        Attributes
+        ----------
+        orm_mode : bool
+            If set to True, enables Pydantic to work with ORM models
+            (e.g., SQLAlchemy models), allowing automatic conversion
+            from ORM instances to Pydantic models.
+
+        """
+
+        orm_mode = True
+
 
 class TokenSchema(BaseModel):
     """Schema for JWT tokens."""
 
     access_token: str
-    refresh_token: str
 
 
 class TokenPayload(BaseModel):
@@ -60,10 +107,23 @@ class TokenPayload(BaseModel):
 class UserAuth(BaseModel):
     """Model for user authentication."""
 
-    email: str = Field(..., description="user email")
-    password: str = Field(
-        ..., min_length=5, max_length=24, description="user password",
-    )
+    email: str
+    password: str
+    repeat_password: str
+
+    class Config:
+        """Configuration for Pydantic model to support ORM mode.
+
+        Attributes
+        ----------
+        orm_mode : bool
+            If set to True, enables Pydantic to work with ORM models
+            (e.g., SQLAlchemy models), allowing automatic conversion
+            from ORM instances to Pydantic models.
+
+        """
+
+        orm_mode = True
 
 
 class UserOut(BaseModel):

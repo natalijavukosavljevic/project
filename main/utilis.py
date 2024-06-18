@@ -1,25 +1,31 @@
 """Helper functions for generating JWT."""
+
 from __future__ import annotations
 
 import logging
 import os
-from datetime import datetime, timedelta
-from typing import Any
+from datetime import datetime, timedelta, timezone
+from typing import Any, Awaitable, Callable
 
-from fastapi import HTTPException, Response
+from dotenv import load_dotenv
+from fastapi import Response  # noqa: TCH002
+from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request  # noqa: TCH002
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 30  # 30 minutes
-REFRESH_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7 # 7 days
+load_dotenv()
+
+ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 60 minutes
+REFRESH_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 ALGORITHM = "HS256"
-JWT_SECRET_KEY = os.environ["JWT_SECRET_KEY"]     # should be kept secret
-JWT_REFRESH_SECRET_KEY = os.environ["JWT_REFRESH_SECRET_KEY"]
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+JWT_REFRESH_SECRET_KEY = os.getenv("JWT_REFRESH_SECRET_KEY")
 
 password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 
 def get_hashed_password(password: str) -> str:
     """Hashes a plain text password.
@@ -53,8 +59,10 @@ def verify_password(password: str, hashed_pass: str) -> bool:
     return password_context.verify(password, hashed_pass)
 
 
-def create_access_token(subject: str | Any, expires_delta: int = None,  # noqa: ANN401, RUF013
-                        ) -> str:
+def create_access_token(
+    subject: str | Any,  # noqa: ANN401
+    expires_delta: int | None = None,
+) -> str:
     """Create an access token.
 
     Args:
@@ -70,15 +78,19 @@ def create_access_token(subject: str | Any, expires_delta: int = None,  # noqa: 
 
     """
     if expires_delta is not None:
-        expires_delta = datetime.utcnow() + expires_delta  # noqa: DTZ003
+        expires_delta = datetime.now(timezone.utc) + expires_delta
     else:
-        expires_delta = datetime.utcnow() + timedelta( # noqa: DTZ003
-            minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expires_delta = datetime.now(timezone.utc) + timedelta(
+            minutes=ACCESS_TOKEN_EXPIRE_MINUTES,
+        )
     to_encode = {"exp": expires_delta, "sub": str(subject)}
     return jwt.encode(to_encode, JWT_SECRET_KEY, ALGORITHM)
 
-def create_refresh_token(subject: str | Any, expires_delta: int = None,  # noqa: ANN401, RUF013
-                         ) -> str:
+
+def create_refresh_token(
+    subject: str | Any,  # noqa: ANN401
+    expires_delta: int | None = None,
+) -> str:
     """Create a refresh token.
 
     Args:
@@ -94,40 +106,17 @@ def create_refresh_token(subject: str | Any, expires_delta: int = None,  # noqa:
 
     """
     if expires_delta is not None:
-        expires_delta = datetime.utcnow() + expires_delta  # noqa: DTZ003
+        expires_delta = datetime.now(timezone.utc) + expires_delta
     else:
-        expires_delta = datetime.utcnow() + timedelta(minutes =  # noqa: DTZ003
-                                                      REFRESH_TOKEN_EXPIRE_MINUTES)
+        expires_delta = datetime.now(timezone.utc) + timedelta(
+            minutes=REFRESH_TOKEN_EXPIRE_MINUTES,
+        )
     to_encode = {"exp": expires_delta, "sub": str(subject)}
     return jwt.encode(to_encode, JWT_REFRESH_SECRET_KEY, ALGORITHM)
 
 
-def verify_token(token: str, credentials_exception : Exception,  # noqa: D417
-                 ) -> dict[str, Any]:
-    """Create a refresh token.
-
-    Args:
-    ----
-        subject (Union[str, Any]): The subject (typically user identifier)
-        of the token.
-        expires_delta (int, optional): The expiration time delta in seconds.
-        Default is None.
-
-    Returns:
-    -------
-        str: The encoded JWT refresh token.
-
-    """
-    try:
-        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-        return payload  # noqa: TRY300
-    except JWTError:
-        raise credentials_exception  # noqa: B904
-
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
 
 class JWTAuthMiddleware(BaseHTTPMiddleware):
     """Middleware for JWT authentication.
@@ -145,8 +134,8 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
 
     """
 
-    def __init__(self, app, secret_key: str, algorithm: str, # noqa: ANN001, ANN101
-                  protected_routes: list) -> None:
+    def __init__(self, app : Callable, secret_key: str, algorithm: str,    # noqa: ANN101
+                 protected_routes: list ) -> None:
         """Initialize the JWTAuthMiddleware.
 
         Args:
@@ -164,7 +153,8 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
         self.protected_routes = protected_routes
         self.logger = logging.getLogger("JWTAuthMiddleware")
 
-    async def dispatch(self, request: Request, call_next) -> Response:  # noqa: ANN001, ANN101
+    async def dispatch(self, request: Request, call_next: Callable[[Request],  # noqa: ANN101
+    Awaitable[Response]]) -> Response:
         """Dispatche the request, checking for a valid JWT token of protected.
 
         Args:
@@ -181,29 +171,27 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
             HTTPException: If the token is missing or invalid.
 
         """
-        if any(request.url.path.startswith(route) for route
-               in self.protected_routes):
+        if any(
+            request.url.path.startswith(route)
+            for route in self.protected_routes
+        ):
             authorization: str = request.headers.get("Authorization")
 
             if not authorization or not authorization.startswith("Bearer "):
                 self.logger.error("Missing or invalid Authorization header")
-                raise HTTPException(
+                return JSONResponse(
+                    content="Missing or invalid Authorization header",
                     status_code=401,
-                    detail="Invalid or missing Authorization header",
-                    headers={"WWW-Authenticate": "Bearer"},
                 )
 
             token = authorization.split(" ")[1]
             try:
-                payload = jwt.decode(token, self.secret_key,
-                                     algorithms=[self.algorithm])
+                payload = jwt.decode(
+                    token, self.secret_key, algorithms=[self.algorithm],
+                )
                 request.state.user = payload
             except JWTError:
                 self.logger.error("Invalid token")  # noqa: TRY400
-                raise HTTPException(  # noqa: B904
-                    status_code=401,
-                    detail="Invalid token",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
+                return JSONResponse(content="Invalid token", status_code=401)
 
         return await call_next(request)

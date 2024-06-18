@@ -1,4 +1,4 @@
-"""ORM Clases for FASTapi app."""
+"""ORM Classes for FASTapi app."""
 
 from sqlalchemy import (
     Column,
@@ -14,22 +14,7 @@ from sqlalchemy.orm import declarative_base, relationship
 Base = declarative_base()
 
 # Define association tables outside of models to avoid redefining them
-project_documents = Table(
-    "project_documents",
-    Base.metadata,
-    Column(
-        "project_id",
-        Integer,
-        ForeignKey("projects.project_id"),
-        primary_key=True,
-    ),
-    Column(
-        "document_id",
-        Integer,
-        ForeignKey("documents.document_id"),
-        primary_key=True,
-    ),
-)
+
 
 participant_project = Table(
     "participant_project",
@@ -89,7 +74,7 @@ class Project(Base):
     project_id = Column(Integer, primary_key=True, index=True)
     owner_id = Column(
         Integer, ForeignKey("users.user_id"), nullable=True,
-    )  # temporaly
+    )
     name = Column(String(255), nullable=False)
     description = Column(Text)
     logo_id = Column(
@@ -99,10 +84,10 @@ class Project(Base):
     owner = relationship("User", back_populates="projects")
     logo = relationship("Image", back_populates="project", uselist=False)
     documents = relationship(
-        "Document", secondary=project_documents, back_populates="projects",
+        "Document", back_populates="project",
     )
     participants = relationship(
-        "User", secondary=participant_project, back_populates="projects",
+        "User", secondary="participant_project", back_populates="projects",
     )
 
 
@@ -150,8 +135,7 @@ class Document(Base):
     document_id = Column(Integer, primary_key=True, index=True)
     document_name = Column(String(255), nullable=False)
     content = Column(Text)
+    project_id = Column(Integer, ForeignKey("projects.project_id"))
 
-    # Relationship for the many-to-many association with projects
-    projects = relationship(
-        "Project", secondary=project_documents, back_populates="documents",
-    )
+    # Relationship for the one-to-many association with project
+    project = relationship("Project", back_populates="documents")

@@ -7,11 +7,12 @@ It includes:
 - Authentication and authorization routes
 - Routes for inviting users to projects
 """
-
 from __future__ import annotations
 
-from typing import Any, List
+import os
+from typing import Any, AsyncGenerator, List
 
+from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.security import OAuth2PasswordRequestForm  # noqa: TCH002
 from sqlalchemy import insert, select
@@ -25,6 +26,7 @@ from sqlalchemy.orm import selectinload
 from main.models import Base, Project, User, participant_project
 from main.schemas import (
     ProjectBase,
+    ProjectBaseUpdate,
     ProjectOut,
     ProjectOutWithDocuments,
     TokenSchema,
@@ -36,22 +38,22 @@ from main.utilis import (
     JWT_SECRET_KEY,
     JWTAuthMiddleware,
     create_access_token,
-    create_refresh_token,
     get_hashed_password,
     verify_password,
 )
 
-# SQLALCHEMY
-DATABASE_URL = (
-    "postgresql+asyncpg://postgres:16041346.D@localhost:5432/db_projects"
-)
-
+load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 engine = create_async_engine(DATABASE_URL)  # echo=True
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 
-async def get_db():  # noqa: ANN201
+
+
+
+
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Get AsyncSession instance.
 
     This function creates an AsyncSession instance and yields it for
@@ -76,10 +78,15 @@ async def get_db():  # noqa: ANN201
 
 # FASTAPI
 app = FastAPI()
+
+
+
+# Define the routes that require JWT authentication and authorization.
 PROTECTED_ROUTES = [
     "/projects",
     "/project/",
 ]
+# Add JWT authentication middleware to protect the specified routes
 app.add_middleware(
     JWTAuthMiddleware,
     secret_key=JWT_SECRET_KEY,
@@ -88,10 +95,16 @@ app.add_middleware(
 )
 
 
+
+
+
 @app.get("/")
 async def root() -> dict[str, str]:
     """Get dict (JSON) for root path."""
     return {"message": "Hello World"}
+
+
+
 
 
 async def get_authenticated_user(request: Request, db: AsyncSession) -> User:
@@ -119,8 +132,12 @@ async def get_authenticated_user(request: Request, db: AsyncSession) -> User:
         raise HTTPException(status_code=401, detail="User not authenticated")
 
     user_email = user.get("sub")
-    async with db as session:
-        user_db = await session.execute(
+
+    async with db.begin():
+        # Start transaction
+
+        # Query the user from the database
+        user_db = await db.execute(
             select(User).where(User.email == user_email),
         )
         user_obj = user_db.scalars().first()
@@ -129,6 +146,7 @@ async def get_authenticated_user(request: Request, db: AsyncSession) -> User:
             raise HTTPException(status_code=404, detail="User not found")
 
         return user_obj
+
 
 
 @app.post("/projects", response_model=ProjectBase)
@@ -162,11 +180,9 @@ async def add_project(
         )
 
         # Add the project to the session
-        # Add the project to the session
         db.add(db_project)
-        await db.commit()
 
-
+    await db.refresh(db_project)
 
 
     return db_project
@@ -175,7 +191,7 @@ async def add_project(
 @app.get("/projects", response_model=List[ProjectOutWithDocuments])
 async def get_projects(
     request: Request,
-    db: AsyncSession = Depends(get_db),  # noqa: B008
+    db: AsyncSession = Depends(get_db),    # noqa: B008
 ) -> list[ProjectOutWithDocuments]:
     """Retrieve projects associated with the authenticated user.
 
@@ -268,7 +284,6 @@ async def delete_project(
 
         if user_obj.user_id == db_project.owner_id:
             await db.delete(db_project)  # Await the deletion operation
-            await db.commit()
             return {"message": "Project deleted successfully"}
 
         raise HTTPException(
@@ -300,10 +315,10 @@ async def is_participant(user_id: int, project_id: int,
     return result.scalar_one_or_none() is not None
 
 
-@app.put("/project/{project_id}/info", response_model=ProjectBase)
+@app.put("/project/{project_id}/info", response_model=ProjectBaseUpdate)
 async def update_project(
     project_id: int,
-    project_data: ProjectBase,
+    project_data: ProjectBaseUpdate,
     request: Request,
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> Project:
@@ -337,10 +352,10 @@ async def update_project(
         if user_obj.user_id == db_project.owner_id or await is_participant(
             user_obj.user_id, project_id, db,
         ):
-            for key, value in project_data.model_dump().items():
-                setattr(db_project, key, value)
-
-            await db.commit()  # Commit within the transaction context
+            if project_data.name is not None:
+                db_project.name = project_data.name
+            if project_data.description is not None:
+                db_project.description = project_data.description
 
             return db_project
 
@@ -348,7 +363,6 @@ async def update_project(
         raise HTTPException(
             status_code=403, detail="User is not authorized for this project",
         )
-
 
 @app.get("/project/{project_id}/info", response_model=ProjectOut)
 async def get_project(
@@ -391,7 +405,9 @@ async def get_project(
 
 
 @app.post("/auth", summary="Create new user", response_model=UserOut)
-async def create_user(user_data: UserAuth, db: AsyncSession = Depends(get_db),  # noqa: B008
+async def create_user(
+    user_data: UserAuth,
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict[str, Any]:
     """Create a new user.
 
@@ -412,30 +428,37 @@ async def create_user(user_data: UserAuth, db: AsyncSession = Depends(get_db),  
         HTTPException: If a user with the same email already exists.
 
     """
-    # Check if user already exists
-    existing_user = await db.execute(
-        select(User).where(User.email == user_data.email),
-    )
-    existing_user = existing_user.scalars().first()
-    if existing_user:
-        raise HTTPException(
-            status_code=400, detail="User with this email already exists",
+    async with db.begin():
+        # Check if user already exists
+        result = await db.execute(
+            select(User).where(User.email == user_data.email),
         )
+        existing_user = result.scalars().first()
+        if existing_user:
+            raise HTTPException(
+                status_code=400, detail="User with this email already exists",
+            )
 
-    # Create new user
-    hashed_password = get_hashed_password(user_data.password)
-    new_user = User(
-        email=user_data.email,
-        hashed_password=hashed_password,
-    )
-    db.add(new_user)
-    await db.commit()
+        # Check if passwords match
+        if user_data.password != user_data.repeat_password:
+            raise HTTPException(
+                status_code=400, detail="Passwords do not match",
+            )
 
-    # Return the newly created user
-    return {
-        "user_id": new_user.user_id,
-        "email": new_user.email,
-    }
+        # Create new user
+        hashed_password = get_hashed_password(user_data.password)
+        new_user = User(
+            email=user_data.email,
+            hashed_password=hashed_password,
+        )
+        db.add(new_user)
+        await db.commit()
+
+        # Return the newly created user
+        return {
+            "user_id": new_user.user_id,
+            "email": new_user.email,
+        }
 
 
 @app.post(
@@ -466,46 +489,38 @@ async def login(
         HTTPException: If the provided email or password is incorrect.
 
     """
-    # Query the user from the database
-    result = await db.execute(
-        select(User).where(User.email == form_data.username),
-    )
-    user = result.scalars().first()
-
-    # Check if user exists and password is correct
-    if user is None or not verify_password(
-        form_data.password, user.hashed_password,
-    ):
-        raise HTTPException(
-            status_code=400, detail="Incorrect email or password",
+    async with db.begin():
+        # Query the user from the database
+        result = await db.execute(
+            select(User).where(User.email == form_data.username),
         )
+        user = result.scalars().first()
 
-    # Create tokens
-    access_token = create_access_token(user.email)
-    refresh_token = create_refresh_token(user.email)
+        # Check if user exists and password is correct
+        if user is None or not verify_password(
+            form_data.password, user.hashed_password,
+        ):
+            raise HTTPException(
+                status_code=400, detail="Incorrect email or password",
+            )
+
+        # Create tokens
+        access_token = create_access_token(user.email)
 
     return {
         "access_token": access_token,
-        "refresh_token": refresh_token,
     }
 
 
 
-
-
-@app.post(
-    "/project/{project_id}/invite",
-    summary="Grant access to the project for a specific user",
-)
-async def invite_user_to_project(
+@app.post("/project/{project_id}/invite",
+          summary="Grant access to the project")
+async def invite_user_to_project(  # noqa: ANN201
     project_id: int,
     request: Request,
     db: AsyncSession = Depends(get_db),  # noqa: B008
-    user_email: str = Query(
-        ..., description="Email of the user to invite",
-    ),  # Moved user_email before request
-) -> dict[str, str]:
-    # Get user information from JWT token
+    user_email: str = Query(..., description="Email of the user to invite"),
+):
     """Invite a user to participate in a project.
 
     Args:
@@ -530,6 +545,7 @@ async def invite_user_to_project(
         HTTPException: If the invited user does not exist.
 
     """
+    # Get user information from JWT token
     current_user = request.state.user
     if not current_user:
         raise HTTPException(status_code=401, detail="User not authenticated")
@@ -537,49 +553,45 @@ async def invite_user_to_project(
     # Retrieve the user_id of the current user based on email
     current_user_email = current_user.get("sub")
 
-    async with db as session:
+    async with db.begin():
         # Select project by project_id
-        result = await session.execute(
-            select(Project).filter(Project.project_id == project_id),
+        result = await db.execute(
+            select(Project).filter(Project.project_id
+                                   == project_id),
         )
         project = result.scalar()
-        temp = await session.execute(
-            select(User).filter(User.user_id == project.owner_id),
-        )
-        owner = temp.scalar()
 
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
 
+        user = await db.execute(select(User).filter(
+            User.user_id == project.owner_id))
+        owner = user.scalar()
+
         # Check if the current user is the owner of the project
         if owner.email != current_user_email:
-            raise HTTPException(
-                status_code=403,
-                detail="Only the project owner can invite users",
-            )
+            raise HTTPException(status_code=403,
+                                detail
+                                ="Only the project owner can invite users")
+
         # Retrieve the user to be invited by email
-        invited_user_obj = await session.execute(
-            select(User).filter(User.email == user_email),
+        invited_user_result = await db.execute(select(User).filter(
+            User.email == user_email))
+        invited_user_obj = invited_user_result.scalar()
+
+        if not invited_user_obj:
+            raise HTTPException(status_code=404,
+                                detail="Invited user doesn't exist")
+
+        # Check if the user is already participating in the project
+        if await is_participant(invited_user_obj.user_id, project_id, db):
+            raise HTTPException(status_code=400,
+                                detail=
+                                "User is already participating in the project")
+
+        await db.execute(
+            insert(participant_project).values(project_id=project_id,
+                                               user_id=invited_user_obj.user_id),
         )
-        if not invited_user_obj:  # proveri
-            raise HTTPException(
-                status_code=401, detail="Invited user doesn't exist",
-            )
 
-          # Check if the user is already participating in the project
-        if await is_participant(invited_user_obj.scalar().user_id,
-                                project_id, session):
-            raise HTTPException(
-                status_code=400,
-                detail="User is already participating in the project",
-            )
-
-        await session.execute(
-            insert(participant_project).values(
-                project_id=project_id,
-                user_id=invited_user_obj.scalar().user_id,
-            ),
-        )
-        await session.commit()
-
-        return {"message": "Participant added to project successfully"}
+    return {"message": "Participant added to project successfully"}
