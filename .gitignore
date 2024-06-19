@@ -59,7 +59,6 @@ dmypy.json
 # Environments
 .venv
 venv/
-env.bak/
 venv.bak/
 
 # Spyder project settings
@@ -84,8 +83,7 @@ celerybeat-schedule
 # SageMath parsed files
 *.sage.py
 
-# dotenv
-.env
+
 
 # virtualenv
 .venv/
@@ -98,10 +96,7 @@ celerybeat-schedule
 .ropeproject
 
 # Environments
-.env
-.env.*
 .venv
-env/
 venv/
 
 # pyright

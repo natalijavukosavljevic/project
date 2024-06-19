@@ -47,7 +47,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 engine = create_async_engine(DATABASE_URL)
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
-unused_variable = 2
+
 
 
 
@@ -56,7 +56,7 @@ unused_variable = 2
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Get AsyncSession instance.
 
-    This function creates an AsyncSession instance and yields it for
+    This function creates an AsyncSession instance and yields it for code formatting example long line
     database operations.
     It also ensures that the session is closed properly after its usage.
 
