@@ -56,7 +56,7 @@ SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Get AsyncSession instance.
 
-    This function creates an AsyncSession instance and yields it for code formatting example long line
+    This function creates an AsyncSession instance and yields it for code
     database operations.
     It also ensures that the session is closed properly after its usage.
 

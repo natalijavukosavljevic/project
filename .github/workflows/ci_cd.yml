@@ -29,21 +29,5 @@ jobs:
 
       - name: Run Ruff for linting and formatting checks
         run: poetry run ruff check .
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      
-      - name: Install poetry
-        run: pipx install poetry
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'  # Specify your Python version
-          cache: poetry
-      
-      - name: Install Python dependencies
-        run: poetry install
 
