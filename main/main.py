@@ -1,4 +1,12 @@
+"""FastAPI Application.
 
+This module defines FastAPI application for managing projects and users.
+
+It includes:
+- Routes for adding, updating, and deleting projects
+- Authentication and authorization routes
+- Routes for inviting users to projects
+"""
 from __future__ import annotations
 
 import os
