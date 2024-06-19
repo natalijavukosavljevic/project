@@ -15,6 +15,7 @@ from typing import Any, AsyncGenerator, List
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.security import OAuth2PasswordRequestForm  # noqa: TCH002
+from fastapi.security.api_key import APIKeyHeader
 from sqlalchemy import insert, select
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
@@ -48,7 +49,8 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_async_engine(DATABASE_URL)
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
-
+# Header with authorization
+auth_header1 = APIKeyHeader(name="Authorization", scheme_name="Bearer")
 
 
 
@@ -151,7 +153,9 @@ async def get_authenticated_user(request: Request, db: AsyncSession) -> User:
 
 @app.post("/projects", response_model=ProjectBase)
 async def add_project(
-    project: ProjectBase, request: Request, db: AsyncSession = Depends(get_db),  # noqa: B008
+    project: ProjectBase, request: Request,
+    header_value1: str = Depends(auth_header1),  # noqa: ARG001
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> Project:
     """Add a new project.
 
@@ -160,6 +164,8 @@ async def add_project(
     Args:
     ----
         project (ProjectBase): The project data to be added.
+        header_value1 (str): The Authorization header value,
+        expected to be in the form "Bearer <token>".
         request (Request): The incoming request.
         db (AsyncSession, optional): The asynchronous database session.
         Defaults to Depends(get_db).
@@ -191,6 +197,7 @@ async def add_project(
 @app.get("/projects", response_model=List[ProjectOutWithDocuments])
 async def get_projects(
     request: Request,
+    header_value1: str = Depends(auth_header1),  # noqa: ARG001
     db: AsyncSession = Depends(get_db),    # noqa: B008
 ) -> list[ProjectOutWithDocuments]:
     """Retrieve projects associated with the authenticated user.
@@ -201,6 +208,7 @@ async def get_projects(
     Args:
     ----
         request (Request): The incoming request.
+        header_value1 (str): The Authorization header value
         db (AsyncSession, optional): The asynchronous database session.
             Defaults to Depends(get_db).
 
@@ -251,7 +259,9 @@ async def get_projects(
 
 @app.delete("/project/{project_id}")
 async def delete_project(
-    project_id: int, request: Request, db: AsyncSession = Depends(get_db),  # noqa: B008
+    project_id: int, request: Request,
+    header_value1: str = Depends(auth_header1),  # noqa: ARG001
+    db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> dict[str, str]:
     """Delete a project.
 
@@ -262,6 +272,7 @@ async def delete_project(
     ----
         project_id (int): The ID of the project to delete.
         request (Request): The incoming request.
+        header_value1 (str): The Authorization header value
         db (AsyncSession, optional): The asynchronous database session.
         Defaults to Depends(get_db).
 
@@ -320,6 +331,7 @@ async def update_project(
     project_id: int,
     project_data: ProjectBaseUpdate,
     request: Request,
+    header_value1: str = Depends(auth_header1),  # noqa: ARG001
     db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> Project:
     """Update project information.
@@ -328,7 +340,9 @@ async def update_project(
     ----
         project_id (int): The ID of the project to update.
         project_data (ProjectBase): The updated project data.
+        header_value1 (str): The Authorization header value
         request (Request): The request object.
+        header_value1 (str): The Authorization header value
         db (AsyncSession, optional): The asynchronous database session.
             Defaults to Depends(get_db).
 
@@ -366,7 +380,10 @@ async def update_project(
 
 @app.get("/project/{project_id}/info", response_model=ProjectOut)
 async def get_project(
-    project_id: int, request: Request, db: AsyncSession = Depends(get_db),  # noqa: B008
+    project_id: int,
+      request: Request,
+      header_value1: str = Depends(auth_header1),  # noqa: ARG001
+      db: AsyncSession = Depends(get_db),  # noqa: B008
 ) -> Project:
     """Retrieve project information by project ID.
 
@@ -374,6 +391,7 @@ async def get_project(
     ----
         project_id (int): The ID of the project to retrieve.
         request (Request): The request object.
+        header_value1 (str): The Authorization header value
         db (AsyncSession, optional): The asynchronous database session.
             Defaults to Depends(get_db).
 
@@ -518,6 +536,7 @@ async def login(
 async def invite_user_to_project(  # noqa: ANN201
     project_id: int,
     request: Request,
+    header_value1: str = Depends(auth_header1),  # noqa: ARG001
     db: AsyncSession = Depends(get_db),  # noqa: B008
     user_email: str = Query(..., description="Email of the user to invite"),
 ):
@@ -528,6 +547,7 @@ async def invite_user_to_project(  # noqa: ANN201
         project_id (int): The ID of the project to which the
         user will be invited.
         request (Request): The request object containing
+        header_value1 (str): The Authorization header value
         the current user's information.
         db (AsyncSession, optional): The asynchronous database session.
             Defaults to Depends(get_db).
