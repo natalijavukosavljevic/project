@@ -147,7 +147,7 @@ async def get_authenticated_user(request: Request, db: AsyncSession) -> User:
         if not user_obj:
             raise HTTPException(status_code=404, detail="User not found")
 
-        return user_obj
+    return user_obj
 
 
 
@@ -470,13 +470,14 @@ async def create_user(
             hashed_password=hashed_password,
         )
         db.add(new_user)
-        await db.commit()
 
-        # Return the newly created user
-        return {
-            "user_id": new_user.user_id,
-            "email": new_user.email,
-        }
+    await db.refresh(new_user)
+
+    # Return the newly created user
+    return {
+        "user_id": new_user.user_id,
+        "email": new_user.email,
+    }
 
 
 @app.post(
@@ -525,9 +526,9 @@ async def login(
         # Create tokens
         access_token = create_access_token(user.email)
 
-    return {
-        "access_token": access_token,
-    }
+        return {
+            "access_token": access_token,
+        }
 
 
 
@@ -614,4 +615,4 @@ async def invite_user_to_project(  # noqa: ANN201
                                                user_id=invited_user_obj.user_id),
         )
 
-    return {"message": "Participant added to project successfully"}
+        return {"message": "Participant added to project successfully"}
