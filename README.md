@@ -19,4 +19,6 @@ and go to:
     First sign up
     Then login
     And add your access token in Authorize section (upper right corner) as Bearer <access_token>
-    ![Alt text](readmeimages/authorize.JPG)
+    
+    <img src="readmeimages/authorize.JPG" alt="Project Logo" width="200" height="200">
+    
