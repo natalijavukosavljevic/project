@@ -6,6 +6,7 @@ It includes:
 - Routes for adding, updating, and deleting projects
 - Authentication and authorization routes
 - Routes for inviting users to projects
+- branch merging
 """
 from __future__ import annotations
 
@@ -55,6 +56,10 @@ auth_header1 = APIKeyHeader(name="Authorization", scheme_name="Bearer")
 
 
 
+
+
+
+
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Get AsyncSession instance.
 
@@ -68,9 +73,6 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         operations.
 
     """
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
     db = SessionLocal()
     try:
         yield db
@@ -80,6 +82,22 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 # FASTAPI
 app = FastAPI()
+
+
+@app.on_event("startup")
+async def on_startup() -> None:
+    """Perform actions on application startup.
+
+    This function ensures that all database tables defined in SQLAlchemy's
+    Base.metadata are created when the application starts up.
+
+    Returns
+    -------
+    None
+
+    """
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
 
 
@@ -109,7 +127,8 @@ async def root() -> dict[str, str]:
 
 
 
-async def get_authenticated_user(request: Request, db: AsyncSession) -> User:
+async def get_authenticated_user(request: Request,
+                                 db: AsyncSession = Depends(get_db)) -> User:  # noqa: B008
     """Get the authenticated user.
 
     This function retrieves the authenticated user based on the request and
