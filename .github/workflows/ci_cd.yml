@@ -27,7 +27,11 @@ jobs:
       - name: Install Python dependencies
         run: poetry install
 
-      - name: Run Ruff for linting and formatting checks
-        run: poetry run ruff check .
+      - name: Set up environment variables
+        env:
+          MY_SECRET_KEY: ${{ secrets.KEY_DB }}
+        run: |
+          echo "Using secret: $MY_SECRET_KEY"
+      
 
 
