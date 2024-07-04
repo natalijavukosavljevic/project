@@ -8,7 +8,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
-from main.models import *  # noqa: F403
+from app.models import *  # noqa: F403
 
 load_dotenv()
 
