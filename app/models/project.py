@@ -1,10 +1,12 @@
 """ORM Classes for FASTapi app."""
 
+from datetime import datetime, timezone
+
 from sqlalchemy import (
     Column,
+    DateTime,
     ForeignKey,
     Integer,
-    LargeBinary,
     String,
     Table,
     Text,
@@ -35,7 +37,9 @@ class Image(Base):
     Attributes
     ----------
         image_id (int): The primary key of the image.
-        image_data (bytes): The binary data of the image.
+        s3_key (str): The S3 key for the image.
+        image_name (str): The original name of the image file.
+        uploaded_at (datetime): The timestamp when the image was uploaded.
         project (Project): Relationship for the one-to-one
         association with a project.
 
@@ -44,7 +48,10 @@ class Image(Base):
     __tablename__ = "images"
 
     image_id = Column(Integer, primary_key=True, index=True)
-    image_data = Column(LargeBinary, nullable=False)
+    s3_key = Column(String, nullable=False, unique=True)
+    image_name = Column(String, nullable=False)
+    uploaded_at = Column(DateTime(timezone=True),
+                         default=datetime.now(timezone.utc))
 
     # Relationship for the one-to-one association with project
     project = relationship("Project", back_populates="logo", uselist=False)
@@ -82,12 +89,14 @@ class Project(Base):
     )
 
     owner = relationship("User", back_populates="projects")
-    logo = relationship("Image", back_populates="project", uselist=False)
+    logo = relationship("Image", back_populates="project", uselist=False,
+                        cascade="all")
     documents = relationship(
-        "Document", back_populates="project",
+        "Document", back_populates="project", cascade="all, delete-orphan",
     )
     participants = relationship(
         "User", secondary="participant_project", back_populates="projects",
+        cascade="all",
     )
 
 
@@ -134,8 +143,13 @@ class Document(Base):
 
     document_id = Column(Integer, primary_key=True, index=True)
     document_name = Column(String(255), nullable=False)
-    content = Column(Text)
+    s3_key = Column(String(255), nullable=False)
     project_id = Column(Integer, ForeignKey("projects.project_id"))
-
+    uploaded_at = Column(DateTime(timezone=True),
+                         default=datetime.now(timezone.utc))
     # Relationship for the one-to-many association with project
     project = relationship("Project", back_populates="documents")
+
+
+
+
