@@ -51,7 +51,7 @@ def test_app(db_session: AsyncSession) -> FastAPI:
 async def async_client(test_app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
     """Create an http client."""
     async with AsyncClient(
-        app=test_app, base_url="http://localhost",
+        app=test_app, base_url="http://test",
     ) as client:
         yield client
 
