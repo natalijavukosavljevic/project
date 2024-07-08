@@ -25,8 +25,8 @@ from app.models.project import Document, Image, Project, User
 @pytest_asyncio.fixture()
 async def db_session() -> AsyncGenerator[AsyncSession, None]:
     """Start a test database session."""
-    #db_url = "postgresql+asyncpg://postgres:password@localhost:5433/test_db"
-    db_url = "postgresql+asyncpg://postgres:16041346.D@localhost/test_db"
+    db_url = "postgresql+asyncpg://postgres:password@localhost:5433/test_db"
+
     engine = create_async_engine(db_url, echo=True)
 
     async with engine.begin() as conn:
