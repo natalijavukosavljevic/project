@@ -29,9 +29,12 @@ jobs:
 
       - name: Set up environment variables
         env:
-          MY_SECRET_KEY: ${{ secrets.KEY_DB }}
+          DATABASE_URL: ${{ secrets.KEY_DB }}
+          S3_BUCKET_1: ${{ secrets.KEY_BUCKET_1 }}
+          S3_BUCKET_2: ${{ secrets.KEY_BUCKET_2 }}
+          S3_BUCKET_3: ${{ secrets.KEY_BUCKET_3 }}
         run: |
-          echo "Using secret: $MY_SECRET_KEY"
+          echo "Using secret: $DATABASE_URL"
       
 
 
