@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - feature
   pull_request:
     branches:
       - main
@@ -26,6 +27,9 @@ jobs:
       
       - name: Install Python dependencies
         run: poetry install
+
+      - name: Run Ruff for linting and formatting checks
+        run: poetry run ruff check .
 
       - name: Set up environment variables
         env:
