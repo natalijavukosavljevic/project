@@ -9,12 +9,15 @@ on:
     branches:
       - main
 env:
-  DATABASE_URL: ${{ secrets.KEY_DB }}
-  S3_BUCKET_1: ${{ secrets.KEY_BUCKET_1 }}
-  S3_BUCKET_2: ${{ secrets.KEY_BUCKET_2 }}
-  S3_BUCKET_3: ${{ secrets.KEY_BUCKET_3 }}
-  AWS_REGION: eu-north-1
-  ECR_REPOSITORY: projects-dev 
+ DATABASE_URL: ${{ secrets.KEY_DB }}
+ S3_BUCKET_1: ${{ secrets.KEY_BUCKET_1 }}
+ S3_BUCKET_2: ${{ secrets.KEY_BUCKET_2 }}
+ S3_BUCKET_3: ${{ secrets.KEY_BUCKET_3 }}
+ JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+ JWT_REFRESH_SECRET_KEY: ${{ secrets.JWT_REFRESH_SECRET_KEY }}
+ AWS_REGION: eu-north-1
+ ECR_REPOSITORY: projects-dev
+
 
 jobs:
   build:
