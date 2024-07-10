@@ -27,7 +27,8 @@ COPY . /app/
 # Expose the port the app runs on
 EXPOSE 8000
 
-
+# Add the command to run Alembic migrations and start the FastAPI server
+CMD ["bash", "-c", "poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"]
 
 
 
