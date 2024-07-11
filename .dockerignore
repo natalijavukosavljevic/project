@@ -11,12 +11,8 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.env
 *.venv
 venv/
-ENV/
-env/
-env.bak/
 venv.bak/
 
 # C extensions
@@ -94,9 +90,6 @@ docs/_build/
 # celery beat schedule file
 celerybeat-schedule.*
 
-# dotenv
-.env
-.env.*
 
 # virtualenv
 venv/
