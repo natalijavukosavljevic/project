@@ -9,13 +9,6 @@ RUN apt-get update \
 ENV PYTHONUNBUFFERED=1 \
     POETRY_VERSION=1.8.3
 
-# Set environment variables
-ENV DATABASE_URL=${DATABASE_URL}
-ENV S3_BUCKET_1=${S3_BUCKET_1}
-ENV S3_BUCKET_2=${S3_BUCKET_2}
-ENV S3_BUCKET_3=${S3_BUCKET_3}
-ENV JWT_SECRET_KEY=${JWT_SECRET_KEY}
-ENV JWT_REFRESH_SECRET_KEY=${JWT_REFRESH_SECRET_KEY}
 
 # Install Poetry and configure it to use virtualenvs in the project directory
 RUN pip install "poetry==$POETRY_VERSION" && poetry config virtualenvs.in-project false
