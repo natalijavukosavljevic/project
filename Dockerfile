@@ -1,21 +1,30 @@
 # Use the official Python image from the Docker Hub
-FROM python:3.11
+FROM python:3.11-slim
 
+# Install system dependencies
+RUN apt-get update \
+    && apt-get install -y libpq-dev
 
-# Set the working directory in the container
-WORKDIR /app
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    POETRY_VERSION=1.8.3
 
-# Copy the current directory contents into the container at /app
-COPY . /app
+# Install Poetry and configure it to use virtualenvs in the project directory
+RUN pip install "poetry==$POETRY_VERSION" && poetry config virtualenvs.in-project false
 
-# Install pipx and poetry
-RUN pip install pipx
-RUN pipx install poetry
+# Create a directory for the app
+WORKDIR /app/
 
-# Install any needed packages specified in poetry.lock and pyproject.toml
-RUN poetry install
+# Copy the pyproject.toml and poetry.lock files
+COPY pyproject.toml poetry.lock /app/
 
-# Make port 8000 available to the world outside this container
+# Install the project dependencies (including dev dependencies for testing)
+RUN poetry install --no-root
+
+# Copy the rest of the application code
+COPY . /app/
+
+# Expose the port the app runs on
 EXPOSE 8000
 
 # Run Alembic migrations and then start the FastAPI server
