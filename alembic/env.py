@@ -8,7 +8,8 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
-from app.models import *  # noqa: F403
+from app.db.base import Base
+from app.models.project import *  # noqa: F403
 
 load_dotenv()
 
@@ -31,7 +32,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel  # noqa: ERA001
 # target_metadata = mymodel.Base.metadata  # noqa: ERA001
-target_metadata = Base.metadata  # noqa: F405
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -97,4 +98,4 @@ def run_migrations_online() -> None:
 if context.is_offline_mode():
     run_migrations_offline()
 else:
-    run_migrations_online()
+    run_migrations_online()  # noqa: W292

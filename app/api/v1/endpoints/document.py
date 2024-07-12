@@ -21,7 +21,7 @@ router = APIRouter()
 auth_header1 = APIKeyHeader(name="Authorization", scheme_name="Bearer")
 
 
-@router.get("/{document_id}/download")
+@router.get("/{document_id}")
 async def download_project_documents(
     document_id: int,
     request: Request,

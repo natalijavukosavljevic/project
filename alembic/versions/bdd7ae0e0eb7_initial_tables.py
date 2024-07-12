@@ -1,18 +1,18 @@
-"""initial.
+"""Initial tables.
 
-Revision ID: dbe2cb688f14
+Revision ID: bdd7ae0e0eb7
 Revises:
-Create Date: 2024-06-12 15:21:48.524163
+Create Date: 2024-07-07 14:55:44.169099
 
 """  # noqa: INP001
 from typing import Sequence, Union
 
-#import sqlalchemy as sa  # noqa: ERA001
+import sqlalchemy as sa  # noqa: F401
 
-#from alembic import op  # noqa: ERA001
+from alembic import op  # noqa: F401
 
 # revision identifiers, used by Alembic.
-revision: str = "dbe2cb688f14"
+revision: str = "bdd7ae0e0eb7"
 down_revision: Union[str, None] = None  # noqa: FA100
 branch_labels: Union[str, Sequence[str], None] = None  # noqa: FA100
 depends_on: Union[str, Sequence[str], None] = None  # noqa: FA100
