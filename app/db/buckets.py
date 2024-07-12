@@ -5,14 +5,17 @@ It uses the boto3 library to interface with S3 and FastAPI's UploadFile for
 handling file uploads in an asynchronous context.
 """  # noqa: D205
 
-
 from __future__ import annotations
 
 import boto3
 from fastapi import UploadFile  # noqa: TCH002
 
+from app.core.config import AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+
 s3_client = boto3.client(
     "s3",
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
 )
 
 
@@ -54,7 +57,6 @@ async def upload_to_s3(
     return s3_key
 
 
-
 async def delete_from_s3(bucket_name: str, s3_key: str) -> bool:
     """Delete an object from an S3 bucket.
 
@@ -74,7 +76,6 @@ async def delete_from_s3(bucket_name: str, s3_key: str) -> bool:
         return False
 
     return True
-
 
 
 async def download_from_s3(bucket_name: str, s3_key: str) -> bytes | None:
@@ -97,4 +98,3 @@ async def download_from_s3(bucket_name: str, s3_key: str) -> bytes | None:
         return None
 
     return content
-
