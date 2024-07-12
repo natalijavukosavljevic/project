@@ -1,0 +1,7 @@
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=password
+POSTGRES_DB=new_db
+JWT_SECRET_KEY=random_value
+JWT_REFRESH_SECRET_KEY=random_refresh_value
+# Database URL for SQLAlchemy
+DATABASE_URL=postgresql+asyncpg://postgres:password@db:5432/new_db
