@@ -21,6 +21,15 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:latest
+        ports:
+          - 5433:5432
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: test_db
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -39,6 +48,9 @@ jobs:
 
       - name: Run Ruff for linting and formatting checks
         run: poetry run ruff check .
+
+      - name: Run tests
+        run: poetry run pytest
 
   deploy:
     name: Deploy
